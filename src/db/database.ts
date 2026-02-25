@@ -1,5 +1,5 @@
 import * as SQLite from "expo-sqlite";
-import { v4 as uuidv4 } from "uuid";
+import * as Crypto from "expo-crypto";
 import type { Task, Profile, Couple, PointsLog, Badge, Wish, TaskCategory, Recurrence } from "../types";
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -88,7 +88,7 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase) {
 
 export async function createCouple(name: string): Promise<Couple> {
   const database = await getDatabase();
-  const id = uuidv4();
+  const id = Crypto.randomUUID();
   const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
   await database.runAsync(
     "INSERT INTO couples (id, name, invite_code) VALUES (?, ?, ?)",
@@ -129,7 +129,7 @@ export async function createProfile(
   avatarEmoji: string = "😊"
 ): Promise<Profile> {
   const database = await getDatabase();
-  const id = uuidv4();
+  const id = Crypto.randomUUID();
   await database.runAsync(
     "INSERT INTO profiles (id, couple_id, display_name, avatar_emoji) VALUES (?, ?, ?, ?)",
     [id, coupleId, displayName, avatarEmoji]
@@ -165,7 +165,7 @@ export async function createTask(params: {
   createdBy: string;
 }): Promise<Task> {
   const database = await getDatabase();
-  const id = uuidv4();
+  const id = Crypto.randomUUID();
   await database.runAsync(
     `INSERT INTO tasks (id, couple_id, title, category, assigned_to, is_recurring, recurrence, points_value, created_by)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -262,7 +262,7 @@ export async function addPoints(params: {
   points: number;
 }): Promise<void> {
   const database = await getDatabase();
-  const id = uuidv4();
+  const id = Crypto.randomUUID();
   await database.runAsync(
     "INSERT INTO points_log (id, couple_id, profile_id, task_id, points) VALUES (?, ?, ?, ?, ?)",
     [id, params.coupleId, params.profileId, params.taskId, params.points]
@@ -343,7 +343,7 @@ export async function awardBadge(profileId: string, badgeType: string): Promise<
     [profileId, badgeType]
   );
   if (existing) return;
-  const id = uuidv4();
+  const id = Crypto.randomUUID();
   await database.runAsync(
     "INSERT INTO badges (id, profile_id, badge_type) VALUES (?, ?, ?)",
     [id, profileId, badgeType]
@@ -381,7 +381,7 @@ export async function createWish(params: {
   description: string;
 }): Promise<Wish> {
   const database = await getDatabase();
-  const id = uuidv4();
+  const id = Crypto.randomUUID();
   await database.runAsync(
     "INSERT INTO wishes (id, profile_id, couple_id, title, description) VALUES (?, ?, ?, ?, ?)",
     [id, params.profileId, params.coupleId, params.title, params.description]
