@@ -1,10 +1,13 @@
 import * as SQLite from "expo-sqlite";
 import * as Crypto from "expo-crypto";
+import { Platform } from "react-native";
 import type { Task, Profile, Couple, PointsLog, Badge, Wish, TaskCategory, Recurrence } from "../types";
+import * as web from "./webStorage";
 
 let db: SQLite.SQLiteDatabase | null = null;
 
-export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
+export async function getDatabase(): Promise<SQLite.SQLiteDatabase | null> {
+  if (Platform.OS === "web") return null;
   if (db) return db;
   db = await SQLite.openDatabaseAsync("matripoints.db");
   await initializeDatabase(db);
@@ -87,6 +90,7 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase) {
 // --- Couple ---
 
 export async function createCouple(name: string): Promise<Couple> {
+  if (Platform.OS === "web") return web.createCouple(name);
   const database = await getDatabase();
   const id = Crypto.randomUUID();
   const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -98,6 +102,7 @@ export async function createCouple(name: string): Promise<Couple> {
 }
 
 export async function getCouple(id: string): Promise<Couple | null> {
+  if (Platform.OS === "web") return web.getCouple(id);
   const database = await getDatabase();
   const row = await database.getFirstAsync<any>(
     "SELECT * FROM couples WHERE id = ?",
@@ -114,6 +119,7 @@ export async function getCouple(id: string): Promise<Couple | null> {
 }
 
 export async function togglePointsEnabled(coupleId: string, enabled: boolean) {
+  if (Platform.OS === "web") return web.togglePointsEnabled(coupleId, enabled);
   const database = await getDatabase();
   await database.runAsync(
     "UPDATE couples SET points_enabled = ? WHERE id = ?",
@@ -128,6 +134,7 @@ export async function createProfile(
   displayName: string,
   avatarEmoji: string = "😊"
 ): Promise<Profile> {
+  if (Platform.OS === "web") return web.createProfile(coupleId, displayName, avatarEmoji);
   const database = await getDatabase();
   const id = Crypto.randomUUID();
   await database.runAsync(
@@ -138,6 +145,7 @@ export async function createProfile(
 }
 
 export async function getProfiles(coupleId: string): Promise<Profile[]> {
+  if (Platform.OS === "web") return web.getProfiles(coupleId);
   const database = await getDatabase();
   const rows = await database.getAllAsync<any>(
     "SELECT * FROM profiles WHERE couple_id = ?",
@@ -164,6 +172,7 @@ export async function createTask(params: {
   pointsValue: number;
   createdBy: string;
 }): Promise<Task> {
+  if (Platform.OS === "web") return web.createTask(params);
   const database = await getDatabase();
   const id = Crypto.randomUUID();
   await database.runAsync(
@@ -198,6 +207,7 @@ export async function createTask(params: {
 }
 
 export async function getTasks(coupleId: string): Promise<Task[]> {
+  if (Platform.OS === "web") return web.getTasks(coupleId);
   const database = await getDatabase();
   const rows = await database.getAllAsync<any>(
     "SELECT * FROM tasks WHERE couple_id = ? ORDER BY created_at DESC",
@@ -207,6 +217,7 @@ export async function getTasks(coupleId: string): Promise<Task[]> {
 }
 
 export async function getIncompleteTasks(coupleId: string): Promise<Task[]> {
+  if (Platform.OS === "web") return web.getIncompleteTasks(coupleId);
   const database = await getDatabase();
   const rows = await database.getAllAsync<any>(
     "SELECT * FROM tasks WHERE couple_id = ? AND completed_at IS NULL ORDER BY created_at DESC",
@@ -216,6 +227,7 @@ export async function getIncompleteTasks(coupleId: string): Promise<Task[]> {
 }
 
 export async function completeTask(taskId: string, completedBy: string): Promise<void> {
+  if (Platform.OS === "web") return web.completeTask(taskId, completedBy);
   const database = await getDatabase();
   await database.runAsync(
     "UPDATE tasks SET completed_by = ?, completed_at = datetime('now') WHERE id = ?",
@@ -224,11 +236,13 @@ export async function completeTask(taskId: string, completedBy: string): Promise
 }
 
 export async function deleteTask(taskId: string): Promise<void> {
+  if (Platform.OS === "web") return web.deleteTask(taskId);
   const database = await getDatabase();
   await database.runAsync("DELETE FROM tasks WHERE id = ?", [taskId]);
 }
 
 export async function uncompleteTask(taskId: string): Promise<void> {
+  if (Platform.OS === "web") return web.uncompleteTask(taskId);
   const database = await getDatabase();
   await database.runAsync(
     "UPDATE tasks SET completed_by = NULL, completed_at = NULL WHERE id = ?",
@@ -261,6 +275,7 @@ export async function addPoints(params: {
   taskId: string;
   points: number;
 }): Promise<void> {
+  if (Platform.OS === "web") return web.addPoints(params);
   const database = await getDatabase();
   const id = Crypto.randomUUID();
   await database.runAsync(
@@ -270,6 +285,7 @@ export async function addPoints(params: {
 }
 
 export async function getWeeklyPoints(coupleId: string): Promise<{ profileId: string; total: number }[]> {
+  if (Platform.OS === "web") return web.getWeeklyPoints(coupleId);
   const database = await getDatabase();
   const rows = await database.getAllAsync<any>(
     `SELECT profile_id, SUM(points) as total FROM points_log
@@ -281,6 +297,7 @@ export async function getWeeklyPoints(coupleId: string): Promise<{ profileId: st
 }
 
 export async function getTotalPoints(profileId: string): Promise<number> {
+  if (Platform.OS === "web") return web.getTotalPoints(profileId);
   const database = await getDatabase();
   const row = await database.getFirstAsync<any>(
     "SELECT COALESCE(SUM(points), 0) as total FROM points_log WHERE profile_id = ?",
@@ -290,6 +307,7 @@ export async function getTotalPoints(profileId: string): Promise<number> {
 }
 
 export async function getTeamWeeklyPoints(coupleId: string): Promise<number> {
+  if (Platform.OS === "web") return web.getTeamWeeklyPoints(coupleId);
   const database = await getDatabase();
   const row = await database.getFirstAsync<any>(
     `SELECT COALESCE(SUM(points), 0) as total FROM points_log
@@ -300,6 +318,7 @@ export async function getTeamWeeklyPoints(coupleId: string): Promise<number> {
 }
 
 export async function getCompletedTasksThisWeek(coupleId: string): Promise<number> {
+  if (Platform.OS === "web") return web.getCompletedTasksThisWeek(coupleId);
   const database = await getDatabase();
   const row = await database.getFirstAsync<any>(
     `SELECT COUNT(*) as count FROM tasks
@@ -310,6 +329,7 @@ export async function getCompletedTasksThisWeek(coupleId: string): Promise<numbe
 }
 
 export async function getCompletedTasksTodayByProfile(coupleId: string): Promise<{ profileId: string; count: number }[]> {
+  if (Platform.OS === "web") return web.getCompletedTasksTodayByProfile(coupleId);
   const database = await getDatabase();
   const rows = await database.getAllAsync<any>(
     `SELECT completed_by as profile_id, COUNT(*) as count FROM tasks
@@ -323,6 +343,7 @@ export async function getCompletedTasksTodayByProfile(coupleId: string): Promise
 // --- Badges ---
 
 export async function getBadges(profileId: string): Promise<Badge[]> {
+  if (Platform.OS === "web") return web.getBadges(profileId);
   const database = await getDatabase();
   const rows = await database.getAllAsync<any>(
     "SELECT * FROM badges WHERE profile_id = ?",
@@ -337,6 +358,7 @@ export async function getBadges(profileId: string): Promise<Badge[]> {
 }
 
 export async function awardBadge(profileId: string, badgeType: string): Promise<void> {
+  if (Platform.OS === "web") return web.awardBadge(profileId, badgeType);
   const database = await getDatabase();
   const existing = await database.getFirstAsync<any>(
     "SELECT id FROM badges WHERE profile_id = ? AND badge_type = ?",
@@ -354,6 +376,7 @@ export async function getCompletedCountByCategory(
   profileId: string,
   category: TaskCategory
 ): Promise<number> {
+  if (Platform.OS === "web") return web.getCompletedCountByCategory(profileId, category);
   const database = await getDatabase();
   const row = await database.getFirstAsync<any>(
     `SELECT COUNT(*) as count FROM tasks
@@ -364,6 +387,7 @@ export async function getCompletedCountByCategory(
 }
 
 export async function getTotalCompletedCount(profileId: string): Promise<number> {
+  if (Platform.OS === "web") return web.getTotalCompletedCount(profileId);
   const database = await getDatabase();
   const row = await database.getFirstAsync<any>(
     "SELECT COUNT(*) as count FROM tasks WHERE completed_by = ? AND completed_at IS NOT NULL",
@@ -380,6 +404,7 @@ export async function createWish(params: {
   title: string;
   description: string;
 }): Promise<Wish> {
+  if (Platform.OS === "web") return web.createWish(params);
   const database = await getDatabase();
   const id = Crypto.randomUUID();
   await database.runAsync(
@@ -397,6 +422,7 @@ export async function createWish(params: {
 }
 
 export async function getWishes(coupleId: string): Promise<Wish[]> {
+  if (Platform.OS === "web") return web.getWishes(coupleId);
   const database = await getDatabase();
   const rows = await database.getAllAsync<any>(
     "SELECT * FROM wishes WHERE couple_id = ? ORDER BY created_at DESC",
@@ -413,6 +439,7 @@ export async function getWishes(coupleId: string): Promise<Wish[]> {
 }
 
 export async function deleteWish(wishId: string): Promise<void> {
+  if (Platform.OS === "web") return web.deleteWish(wishId);
   const database = await getDatabase();
   await database.runAsync("DELETE FROM wishes WHERE id = ?", [wishId]);
 }
